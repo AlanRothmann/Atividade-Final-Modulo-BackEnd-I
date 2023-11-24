@@ -1,5 +1,6 @@
 const express = require('express');
 const bodyParser = require('body-parser');
+const bcrypt = require('bcrypt');
 
 const app = express();
 
@@ -8,36 +9,51 @@ app.use(bodyParser.json());
 const users = [];
 
 // Criar conta
-app.post('/criar-conta', (req, res) => {
+app.post('/criar-conta', async (req, res) => {
     const { name, email, password } = req.body;
 
     if (users.some(user => user.email === email)) {
         return res.status(400).json({ error: 'E-mail já cadastrado' });
     }
 
-    const newUser = {
-        id: users.length + 1,
-        name,
-        email,
-        password,
-        messages: []
-    };
+    try {
+        const hashedPassword = await bcrypt.hash(password, 10);
 
-    users.push(newUser);
-    res.json(newUser);
+        const newUser = {
+            id: users.length + 1,
+            name,
+            email,
+            password: hashedPassword,
+            messages: []
+        };
+
+        users.push(newUser);
+        res.json(newUser);
+    } catch (err) {
+        res.status(500).json({ error: 'Erro ao criar a conta' });
+    }
 });
 
 // Login
-app.post('/login', (req, res) => {
+app.post('/login', async (req, res) => {
     const { email, password } = req.body;
 
-    const user = users.find(user => user.email === email && user.password === password);
+    const user = users.find(user => user.email === email);
 
     if (!user) {
         return res.status(401).json({ error: 'Credenciais inválidas' });
     }
 
-    res.json({ message: 'Login bem-sucedido', user });
+    try {
+        const passwordMatch = await bcrypt.compare(password, user.password);
+        if (!passwordMatch) {
+            return res.status(401).json({ error: 'Credenciais inválidas' });
+        }
+        res.json({ message: 'Login bem-sucedido', user });
+    } catch (err) {
+        res.status(500).json({ error: 'Erro ao fazer login' })
+    }
+
 });
 
 
