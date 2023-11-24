@@ -123,4 +123,5 @@ app.delete('/delrecado/:userId/:messageId', (req, res) => {
 });
 
 // Iniciar servidor
-app.listen(8080, () => console.log("Servidor iniciado"));
+const port = process.env.PORT || 8080
+app.listen(port, () => console.log("Servidor iniciado"));
